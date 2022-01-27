@@ -1,0 +1,1 @@
+("8.3" ta6le ("19590df0569611cb31300f423efceb946643bc12" . "acd31c8415f9148e82a40d277c0ae1aa263906ec") #"/media/akhil/DATA/racket/guess_gui/state.rkt" (collects #"2htdp" #"image.rkt") (collects #"2htdp" #"universe.rkt") (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))

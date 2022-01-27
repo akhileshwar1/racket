@@ -1,0 +1,20 @@
+#lang racket
+(define upper 0)
+(define lower 0)
+(define (start n m)
+  (set! upper (max n m))
+  (set! lower (min n m))
+  (guess))
+
+
+(define akhil 100)
+
+(define (guess)
+  (quotient (+ upper lower) 2))
+
+(define (smaller)
+  (set! lower (max upper (sub1 (guess)))))
+
+(define (bigger)
+  (set! upper (max lower (sub1 (guess)))))
+(start 1 10)

@@ -1,0 +1,1 @@
+("8.3" ta6le ("d01525d7a10c244b096fc141d8c647f6a9a9282b" . "07d072e157b6222d34207dcac7e36912ca9a6ae9") #"/media/akhil/DATA/racket/snake_game/state.rkt" (collects #"2htdp" #"image.rkt") (collects #"2htdp" #"universe.rkt") (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
