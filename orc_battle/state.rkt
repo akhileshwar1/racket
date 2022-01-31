@@ -1,0 +1,15 @@
+(struct monster (image [health #:mutable]))
+(struct player (health agility strength) #:mutable)
+((struct hydra monster ())
+(struct slime monster (sliminess))
+(struct brigand monster ())
+(struct orc monster (club))
+(struct orc-world (player lom attack# target) #:mutable)
+
+(define (player-update! setter selector mx)
+  (lambda (player delta)
+    (setter player (interval+ delta (selector player) mx))))
+
+(define (monster-update! setter selector mx)
+  (lambda (monster delta)
+    (setter monster (interval+ delta (selector monster) mx))))
