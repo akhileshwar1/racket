@@ -3,8 +3,8 @@
 (struct gt (board trees)#:transparent)
 (struct box (pos player)#:transparent)
 
-; purpose: genrate the game tree starting from an empty board.
-; contract: player board -> game-tree-- which is list of trees.
+; purpose: generate the game tree starting from an empty board.
+; contract: player board-> game-tree-- which is list of trees.
 (define (game-tree player board)
   (define posns (get-free-posns board))
   (for/list ([posn posns])
