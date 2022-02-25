@@ -1,11 +1,6 @@
 #lang racket
-(require (for-syntax racket/match))
-(require (for-syntax racket/syntax))
-(require macro-debugger/stepper)
-(require macro-debugger/expand)
-(require macro-debugger/stepper-text)
-(require racket/stxparam)
 
+(require (for-syntax racket/match))
 ;; Not a good use of suntax transformer. It can be done with a function with ease.
 (define-syntax thumbs-up
     (lambda (stx)
@@ -194,78 +189,10 @@ val3
 
 (deep 8)
 
-;; giving it variable the value of the expr.
 (define-syntax (define-it stx)
   (syntax-case stx ()
                [(_ expr)
-                #'(define it expr)]))  
+                #'(define it expr)]))
 
-
-(let ([it 0])
-  (define-it 5)  ; a macro has its own scope.  
-  (+ it it)) 
-  ; output: 0 because the inner it is not available in the outer context. AKA lexical scope.
-
-#;(let ([x 0])
-  (define-it 5)
-  (+ it it))
-
-;; KEY point: The only explanation that I can think of is that a macro is only meaningful in a context. It can be genralized about any piece of code as there's a;ways a top level context.
-
-;; how will you make define-it work outside the scope. ?
-;; "datum->syntax converts a piece of datum into a syntax object. A syntax object is simply piece of Racket data with additional scope information attached to it. Therefore, datum->syntax takes two arguments. The second is just the data; in this case new name you want to bind. The first is a syntax object that currently has the scope that you want the new name to be bound inside of; in this case, we want the new name to be bound in the same scope as the expression it is bound to, in this case #'e."
-
-(define-syntax (define-it-v2 stx)
-  (syntax-case stx ()
-  [(_ e)
-  (with-syntax ([the-new-name (datum->syntax #'e 'it)]) ; creating the new syntax as well as giving it a scope same as e.
-  #'(define the-new-name e))]))
-
-(let ([expr 5])
-     (define-it-v2 expr)
-     (+ it it))
-
-;; using syntax-parameters to do it more beautifully.
-(define-syntax-parameter it
-                         (lambda (stx)
-                              (raise-syntax-error #f "Illegal outside with-it" stx)))
-
-(define-syntax (with-it stx)
-  (syntax-case stx ()
-               [(with-it e body ...)
-                #'(let ([this-it e])
-                (syntax-parameterize ([it (lambda(stx) #'this-it)])
-                                     body ...))]))
-
-(with-it 5 (+ 1 it))
-
-;; so the thing is that with-syntax lets us introduce new syntax and also breaks scope hygiene rules.
-;; syntax-parameter keeps the hygiene rules, but helps us define new syntax in a way that breaking the rules can signal a custom message.
-
-(define-syntax forever
-    (syntax-rules ()
-        [(forever body ...)
-            (call/cc (lambda (abort)
-                (let loop () body ... (loop))))]))
-
-
-
-(define-syntax (forever-v2 stx)
-(syntax-case stx ()
-    [(forever body ...)
-        (with-syntax ([abort (datum->syntax #'forever 'abort)])
-        #'(call/cc (lambda (abort)
-        (let loop () body ... (loop)))))]))
-
-#;(let ([i 0])
-  ((forever-v2 (set! i (+ i 1)) (display i)) (equal? i 5)))
-
-(define-syntax (while stx)
-  (syntax-case stx ()
-               [(while test body ...)
-                #'(let loop () (if test
-                                   (begin body ... (loop))
-                                   (display "done")))]))
-
-(let ([i 0])
-  (while (< i 5) (displayln i) (set! i (+ i 1))))
+(define-it 5)
+(+ it it)

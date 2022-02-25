@@ -1,0 +1,49 @@
+#lang racket
+(require (for-syntax racket/match))
+(require (for-syntax racket/syntax))
+(require macro-debugger/stepper)
+
+;; creating a struct macro.
+;; (struct name (a b ...)) -> (define a macro with 2 cases)
+;; first case: (name a b ...) -> (list a b ...)
+;; second case: (name-a/b ... inst) ->  (list-ref lst no)
+(define-syntax (my-struct stx)
+  (syntax-case stx ()
+               [(my-struct name (a b ...)) (syntax (define-syntax (name stx1)
+                                                              (syntax-case stx1 ()
+                                                                           [(name x y (... ...)) (syntax (list 'name x y (... ...)))])))]))
+
+(my-struct first (id sid))
+(let ([x 1] [y 2])
+     (first x y)
+     )
+
+;; the second case wasn't possible with the path I was on. 
+;; the correct way is to define three functions instead of a macro.
+(define-syntax (our-struct stx)
+  (syntax-case stx ()
+               [(_ id (fields ...)) 
+                (with-syntax ([pred-id (format-id #'id "~a?" #'id)])
+                    #`(begin
+                        (define (id fields ...)
+                          (apply vector (cons 'id (list fields ...))))
+                        ;; Define the predicate function.
+                        (define (pred-id v)
+                          (and (vector? v)
+                            (eq? (vector-ref v 0) 'id)))
+                        ;; Define the accessor function for each field.
+                        #,@(for/list ([x (syntax->list #'(fields ...))]
+                                   [n (in-naturals 1)])
+                                   (with-syntax ([acc-id (format-id #'id "~a-~a" #'id x)]
+                                                 [ix n])
+                                                #`(define (acc-id v)
+                                                    (unless (pred-id v)
+                                                      (error 'acc-id "~a is not a ~a struct" v 'id))
+                                                    (vector-ref v ix))))))]))
+;;(expand/step (our-struct second (id sid)))
+(our-struct second (id sid))
+#;(let ([x 1] [y 2])
+     (second x y)
+     )
+
+
