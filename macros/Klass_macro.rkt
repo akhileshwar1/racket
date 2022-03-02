@@ -47,7 +47,7 @@
                [(_ obj class field)
                 (with-syntax ([obj.field (format-id #'obj "~a.~a" #'obj #'field)]
                               [class-field (format-id #'obj "~a-~a" #'class #'field)]
-                              [self.field (format-id #'obj "~a.~a" #'self #'field)])
+                              )
                              #'(define-syntax-rule (obj.field)
                                                    (class-field obj))
                                  #;(define-syntax-parameter self.field 
