@@ -198,12 +198,15 @@ val3
 (define-syntax (define-it stx)
   (syntax-case stx ()
                [(_ expr)
-                #'(define it expr)]))  
+                #'(define ittt expr)]))  
 
 
 (let ([it 0])
   (define-it 5)  ; a macro has its own scope.  
   (+ it it)) 
+
+(displayln "HEERE")
+(define-it 7)
   ; output: 0 because the inner it is not available in the outer context. AKA lexical scope.
 
 #;(let ([x 0])
@@ -269,3 +272,90 @@ val3
 
 (let ([i 0])
   (while (< i 5) (displayln i) (set! i (+ i 1))))
+
+
+;; my implementation of syntax->datum using syntax-e and datum->syntax.
+(define (my-syntax->datum stx)
+  (define e (syntax-e stx))
+  (cond [(empty? e) e]
+        [(list? e) (cons (my-syntax->datum (car e)) (my-syntax->datum (datum->syntax stx (cdr e))))]  ; why datum->syntax and not #'.
+        [else e]))
+
+(my-syntax->datum #'(define akhil 10))
+
+
+;; IN the previous example, datum->syntax was used as it evaulates it args, unlike #'.
+;; THE Word evaulation suggests that Racket sees two things code and data. The difference is that code comes with a context to evaluate. 
+;; IN many of my macros, I have used #' for creating syntax with no context arg, but they worked fine. Perhaps because it was being expanded in a context that had there references.
+;; but with syntax I had to use datum->syntax because it was a new syntax that had no reference in the context it was being expanded into. 
+
+
+;; anaphoric if.
+(define-syntax-rule (aif test succ-expr fail-expr)
+                    (let ([that (+ test 1)])
+                         (if that 
+                             (begin succ-expr (displayln that))  ;; prints [10 11] because succ-expr uses that from the outer scope, whereas the other one uses that from                                                                  macro's scope.
+                             fail-expr)))
+
+(let ([that 10])
+  (aif that (displayln that) (display 0)))  
+
+;; GAME CHANGER: Every code or syntax object has a context(where all the bindings are, in case of a list) and a "lexical scope information of its source",                 where source is the parent code containing that particular syntax.
+
+;; REDUNDANT anaphoric if, but it still makes you define thatt outside.
+(define-syntax (aif-v2 stx)
+  (syntax-case stx ()
+               [(aif-v2 test succ-expr fail-expr)
+                (with-syntax ([thatt (datum->syntax #'test #'thatt)]) ;; this binding's lexical scope changes to the macro call area i.e thatt can be exported outside 
+                             #'(let ([thatt (+ 1 test)])
+                                    (if thatt 
+                                     (begin succ-expr (displayln thatt))  
+                                      fail-expr)))]))
+
+(let ([thatt (+ 5 5)])
+  (aif-v2 thatt (displayln thatt) (display 0))
+  ) 
+
+;; correct anaphoric if lets you do this: (aif 10 (displayln it) (void))-->10.
+(define-syntax (aif-v3 stx)
+  (syntax-case stx ()
+               [(aif-v2 test succ-expr fail-expr)
+                (with-syntax ([itt (datum->syntax #'test #'itt)]) ;; this binding's lexical scope changes to the macro call area i.e thatt can be exported outside 
+                             #'(let ([itt test])
+                                    (if itt 
+                                     (begin succ-expr (displayln itt))  
+                                      fail-expr)))]))
+;(aif-v3 10 (displayln itt) (void))
+        ; the itt from the inside could have been used here.) ;; throws an error because before the expansion (display itt) already had a context and a scope where the binding wasn't defined.
+                                   ;; it thorws the error after expansion, but the particular syntax object wasn't bound while calling. 
+
+
+
+;; So how do we go past this? One way is to get a binding before, but that will be used even after expansion.
+;; Lets check.
+
+(let ([itt 0])
+  (aif-v3 10 (displayln itt) (void))
+  itt) ; output: 0, i.e it uses the earlier binding/ Why?  the bindings and scopes are determined before expansion for the other syntax/
+       ; but how come line 226 worked with it?
+
+;; it seems like syntax-parameter is the only way.
+;; the problem: there is a binding at a call time that was supposed to be provided during expansion. it doesn't work because the expr doesn;t come after expansion. like the case of define-it-v2.
+;; that is binding comes after expansion, but is needed at call time. 
+;; with syntax-parameter you define a macro in the use site scope, so you can use it there. And then in the expansion phase you redefine the use site name to something inside the macro's scope.
+
+(define-syntax-parameter thati
+                         (lambda (stx)
+                           (raise-syntax-error (syntax-e stx) "cannot be used outside of aif")))
+
+(define-syntax (aif-v4 stx)
+  (syntax-case stx ()
+               [(_ test succ-expr fail-expr)
+                #'(let ([tmp test])
+                       (syntax-parameterize ([thati (make-rename-transformer #'tmp)])
+                                            (if tmp
+                                                succ-expr
+                                                fail-expr)))]))
+
+(displayln "parameterize")
+(aif-v4 10 (displayln thati) (void))
