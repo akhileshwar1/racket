@@ -3,15 +3,12 @@
 (require (for-syntax racket/syntax))
 (require racket/stxparam)
 
-;; interface: (Klass name (a b ...) (methods ((func_name arg ...) func_body ...) ... ))
+;; interface: (Klass name (a b ...) ((func_name arg ...) func_body ...) ... )
 (define-syntax (Klass stx)
   (syntax-case stx ()
-               [(_ name (a b ...) (((func_name arg) func_body) ...))
-                (with-syntax ([fields (format-id #'name "~a-~a" #'name #'values)]
-                              [obj_def (format-id #'name "define-obj-~a" #'name)])
-
+               [(_ name (a b ...) ((func_name arg ...) func_body ...) ...)
+                (with-syntax ([obj_def (format-id #'name "define-obj-~a" #'name)])
                 #'(begin
-                    (define fields '(a b ...)) ; defined and available  at run time.
                     (struct name (a b ...))
             
                 ;; creating an object of a specific class by expanding into defining a struct and defining macros for   dot operations on fields.
@@ -28,10 +25,12 @@
                                     
                                     
                                     ;; creating an obj.func_name definition for each function in the pattern.
-                                    #,@(for/list ([func_def (syntax->list #'(((func_name arg) func_body) ...))])
-                                                 (with-syntax ([obj.func_name (format-id #'obj "~a.~a" #'obj #`#,(caar (syntax->datum func_def)))]
-                                                               [obj.arg  #`#,(cadar (syntax->datum func_def))]
-                                                               [obj.body #`#,(cdr (syntax->datum func_def))])
+                                    #,@(for/list ([func (syntax->list #'(func_name ...))]
+                                                  [args (syntax->list #'(arg ... ...))]
+                                                  [bodys (syntax->list #'(func_body ... ...))])
+                                                 (with-syntax ([obj.func_name (format-id #'obj "~a.~a" #'obj func)]
+                                                               [obj.arg  args]
+                                                               [obj.body bodys])
                                                  #`(define (obj.func_name obj.arg)
                                                      (syntax-parameterize (#,@(for/list ([value (syntax->list #'(a b ...))])
                                                                                        (with-syntax  ([obj.val (format-id #'obj "~a.~a" #'obj value)] [r_val (format-id #'obj "~a" value)])
@@ -72,7 +71,7 @@
                                    (raise-syntax-error (syntax-e stx1) "cannot be used outside of object definition"))))))]))
 
 (Klass-skeleton name no)
-(Klass bike (name no) (((get-no x) (display (no))) ((get-name x) (display (name)))))
+(Klass bike (name no) ((get-no x) (display (+ x (no)))) ((get-name x) (display (name))))
 (define-obj-bike first ("hayabusa" 10))
 (first.name)
 (first.get-no 2)
