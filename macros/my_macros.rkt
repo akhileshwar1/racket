@@ -44,6 +44,8 @@
                       (vector-ref v ix))))))]))
 
 
+;; --------------------------------------------------------------------------------------------------- 
+
 ;; creating a macro for for/list.
 ;; (for/list ([var lst]) body0 body ...) -> (define a function with params as (list)
 ;; that accumulates in a list and call it as well.
@@ -64,6 +66,10 @@
 (my-for/list ([v '(1 2 3)]) (display "hey") (+ v 1))
 (for/list ([v '(1 2 3)]) (display "hey") (+ v 1))
 
+
+;; --------------------------------------------------------------------------------------------------- 
+
+;; creating a macro for classic for loop.
 (define-syntax (my-for stx)
   (syntax-case stx ()
     [(_ func ([var lst]) body0 body ...)
@@ -79,6 +85,9 @@
 ;; run.
 (my-for and ([v '(1 2 x)]) (display "hey") (number? v))
 
+
+
+;; --------------------------------------------------------------------------------------------------- 
 
 ;; creating a standard while loop.
 ;; interface: (while test body ...)
