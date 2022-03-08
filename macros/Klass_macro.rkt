@@ -9,7 +9,7 @@
 (require (for-syntax syntax/parse))
 
 
-;; interface: (Klass name (a b ...) ((func_name arg ...) func_body ...) ... )
+;; interface: (Klass name (field a) ...+ (method (func_name arg ...) func_body ...) ... )
 ;; Creating a class macro.
 (define-syntax (Klass stx)
   (syntax-parse stx 
