@@ -5,6 +5,7 @@
 (require macro-debugger/expand)
 (require macro-debugger/stepper-text)
 (require racket/stxparam)
+(require (for-syntax syntax/parse))
 
 ;; Not a good use of suntax transformer. It can be done with a function with ease.
 (define-syntax thumbs-up
@@ -194,24 +195,12 @@ val3
 
 (deep 8)
 
-;; giving it variable the value of the expr.
-(define-syntax (define-it stx)
-  (syntax-case stx ()
-               [(_ expr)
-                #'(define ittt expr)]))  
 
-
-(let ([it 0])
-  (define-it 5)  ; a macro has its own scope.  
-  (+ it it)) 
+;(let ([it 0])
+;  (define-it 5)  ; a macro has its own scope.  
+;  (+ it it)) 
 
 (displayln "HEERE")
-(define-it 7)
-  ; output: 0 because the inner it is not available in the outer context. AKA lexical scope.
-
-#;(let ([x 0])
-  (define-it 5)
-  (+ it it))
 
 ;; KEY point: The only explanation that I can think of is that a macro is only meaningful in a context. It can be genralized about any piece of code as there's a;ways a top level context.
 
@@ -229,18 +218,18 @@ val3
      (+ it it))
 
 ;; using syntax-parameters to do it more beautifully.
-(define-syntax-parameter it
+#|(define-syntax-parameter it
                          (lambda (stx)
-                              (raise-syntax-error #f "Illegal outside with-it" stx)))
+                              (raise-syntax-error #f "Illegal outside with-it" stx)))|#
 
-(define-syntax (with-it stx)
+#|(define-syntax (with-it stx)
   (syntax-case stx ()
                [(with-it e body ...)
                 #'(let ([this-it e])
                 (syntax-parameterize ([it (lambda(stx) #'this-it)])
                                      body ...))]))
 
-(with-it 5 (+ 1 it))
+(with-it 5 (+ 1 it))|#
 
 ;; so the thing is that with-syntax lets us introduce new syntax and also breaks scope hygiene rules.
 ;; syntax-parameter keeps the hygiene rules, but helps us define new syntax in a way that breaking the rules can signal a custom message.
@@ -359,3 +348,25 @@ val3
 
 (displayln "parameterize")
 (aif-v4 10 (displayln thati) (void))
+
+(define-syntax (ex stx)
+  #'5)
+
+(ex 1)
+
+(define-syntax EOF
+  (λ (stx) (raise-syntax-error #f "Illegal outside with-ignored" stx)))
+;; literals example.
+(define-syntax (with-ignored stx)
+  (syntax-parse stx
+    #:literals (EOF)
+    #:track-literals
+    [(_ before ... EOF after ...)
+     #'(let () before ...)]))
+
+(with-ignored
+  (define x 6)
+  (+ x x)
+  EOF
+  x y z
+  (/ 1 0))
