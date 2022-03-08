@@ -16,7 +16,11 @@
     [(_ (~var name id) ((~literal field) (~var a id)) ...+ ((~literal method) (func_name arg ...) func_body ...+) ...)
      (with-syntax ([obj-def (format-id #'name "define-obj-~a" #'name)])
        #'(begin
+           ;; internal data repr of the class.
            (struct name (a ...))
+
+           ;; Calling a macro that initializes all the self syntax paramters for the corresponding fields.
+           (Klass-skeleton a ...)
 
            ;; creating an object of a specific class by expanding into defining a struct and defining
            ;; macros for dot operations on fields.
@@ -78,7 +82,6 @@
 ;; =================================================================================================== 
 
 ;; Run
-(Klass-skeleton name no)
 (Klass bike (field name) (field no) (method (get-no x) (displayln (+ x self.no))) (method (get-name x) (displayln self.name)))
 (define-obj-bike first ("hayabusa" 10))
 first.name
