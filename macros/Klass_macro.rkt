@@ -29,7 +29,10 @@
 ; ---------------------------------------------------------------------------------------------------
 
 ; Implementation
-
+; Approach: To enable the dot operations to access class data, I have stored a class as a struct
+;           with fields[Line 50] and defined (obj.field)[line 98] for each field.
+;           Secondly, to give an access to the functions of a particular object
+;           I have defined a function for each (obj.method)[Line 77].
 
 ; Creating a class macro.
 (define-syntax (Klass stx)
@@ -45,27 +48,27 @@
 
      (with-syntax ([obj-def (format-id #'name "define-obj-~a" #'name)])
        #'(begin
-           ;; internal data repr of the class.
+           ; internal data repr of the class.
            (struct name (a ...))
 
-           ;; Calling a macro that initializes all the self syntax paramters for the corresponding
-           ;; fields.
+           ; Calling a macro that initializes all the self syntax paramters for the corresponding
+           ; fields.
            (Klass-skeleton a ...)
 
-           ;; creating an object of a specific class by expanding into defining a struct and definin
-           ;; macros for dot operations on fields.
+           ; creating an object of a specific class by expanding into defining a struct and definin
+           ; macros for dot operations on fields.
            (define-syntax (obj-def stx)
              (syntax-parse stx 
                [(_ (~var obj id) (val (... ...)))
                 #`(begin
                     (define obj (name val (... ...))) ; available at run time.
 
-                    ;; calling define-obj-field macro for all the fields in Klass.
+                    ; calling define-obj-field macro for all the fields in Klass.
                     #,@(for/list ([prop (syntax->list #'(a ...))])
                          (with-syntax ([prop-name prop]) 
                            #`(define-obj-field obj name prop-name)))
 
-                    ;; creating an obj.func_name definition for each function in the pattern.
+                    ; creating an obj.func_name definition for each function in the pattern.
                     #,@(for/list ([func (syntax->list #'(func_name ...))]
                                   [args (syntax->list #'((arg ...) ...))]
                                   [bodys (syntax->list #'((func_body ...) ...))])
