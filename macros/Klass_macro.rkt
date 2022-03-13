@@ -1,28 +1,58 @@
 #lang racket
 
-;; =================================================================================================== 
+(provide
+  ; A class macro of the form (Klass name (field a)
+  ;                                       ...+
+  ;                                       (method (func_name arg ...)
+  ;                                       func_body
+  ;                                       ...)
+  ;                                       ...)
+  ; where field is the class data, and methods correspond to the functions of the class.
 
+
+  ; Also implicitly provides a define object form with the interface:
+  ; (define-obj-{class} (~var obj id) (field values))
+  ; where class refers to the class of the object,
+  ; obj is the object name, and values are the initial data values of the object.
+  Klass)
+
+; --------------------------------------------------------------------------------------------------- 
 (require (for-syntax racket/list))
 (require (for-syntax racket/match))
 (require (for-syntax racket/syntax))
 (require racket/stxparam)
 (require (for-syntax syntax/parse))
+(require (for-syntax "distinct-ids-sc.rkt"))
+(require rackunit)
+(require syntax/macro-testing)
+(require rackunit/text-ui)	
+; ---------------------------------------------------------------------------------------------------
+
+; Implementation
 
 
-;; interface: (Klass name (field a) ...+ (method (func_name arg ...) func_body ...) ... )
-;; Creating a class macro.
+; Creating a class macro.
 (define-syntax (Klass stx)
   (syntax-parse stx 
-    [(_ (~var name id) ((~literal field) (~var a id)) ...+ ((~literal method) (func_name arg ...) func_body ...+) ...)
+    [(_ (~var name id) ((~literal field) (~var a id)) 
+        ...+
+        ((~literal method) (func_name arg ...) func_body ...+)
+        ...)
+
+     ; calling distinct-ids syntax-class to see whether every field and func is unique.
+     #:with (~var fields distinct-ids) #'(a ...)
+     #:with (~var funcs distinct-ids) #'(func_name ...)
+
      (with-syntax ([obj-def (format-id #'name "define-obj-~a" #'name)])
        #'(begin
            ;; internal data repr of the class.
            (struct name (a ...))
 
-           ;; Calling a macro that initializes all the self syntax paramters for the corresponding fields.
+           ;; Calling a macro that initializes all the self syntax paramters for the corresponding
+           ;; fields.
            (Klass-skeleton a ...)
 
-           ;; creating an object of a specific class by expanding into defining a struct and defining
+           ;; creating an object of a specific class by expanding into defining a struct and definin
            ;; macros for dot operations on fields.
            (define-syntax (obj-def stx)
              (syntax-parse stx 
@@ -37,12 +67,12 @@
 
                     ;; creating an obj.func_name definition for each function in the pattern.
                     #,@(for/list ([func (syntax->list #'(func_name ...))]
-                                  [args (syntax->list #'(arg ... ...))]
-                                  [bodys (syntax->list #'(func_body ... ...))])
+                                  [args (syntax->list #'((arg ...) ...))]
+                                  [bodys (syntax->list #'((func_body ...) ...))])
                          (with-syntax ([obj.func_name (format-id #'obj "~a.~a" #'obj func)]
                                        [obj.arg  args]
                                        [obj.body bodys])
-                           #`(define (obj.func_name obj.arg)
+                           #`(define #,(cons #'obj.func_name #'obj.arg)
                                (syntax-parameterize (#,@(for/list ([value (syntax->list #'(a ...))])
                                                           (with-syntax  ([obj.val (format-id #'obj
                                                                                              "~a.~a"
@@ -50,12 +80,14 @@
                                                                                              value)]
                                                                          [r_val (format-id #'obj
                                                                                            "~a.~a"
-                                                                                           #'self value)])
-                                                            #'[r_val (make-rename-transformer #'obj.val)])))
-                                                    obj.body)))))]))))]))
+                                                                                           #'self 
+                                                                                           value)])
+                                                            #'[r_val (make-rename-transformer
+                                                                       #'obj.val)])))
+                                                    #,@(syntax->list #'obj.body))))))]))))]))
 
 
-;; creating a macro for obj.field.
+; Helper macro to create obj.field macro.
 (define-syntax (define-obj-field stx)
   (syntax-parse stx
     [(_ (~var obj id) (~var class id) (~var field id))
@@ -66,7 +98,8 @@
              (syntax-case stx ()
                [obj.field (identifier? (syntax obj.field)) (syntax (class-field obj))]))))]))
 
-;; A macro to initialize the syntax-parameters for all the fields in a Klass.
+
+; Helper macro to initialize the syntax-parameters for all the fields in a Klass.
 (define-syntax (Klass-skeleton stx)
   (syntax-parse stx 
     [(_ (~var field id) ...+)
@@ -76,15 +109,42 @@
                 ;(displayln #'self.field)
                 #'(define-syntax-parameter self.field (lambda (stx1) 
                                                         (raise-syntax-error (syntax-e stx1)
-                                                                            "cannot be used outside of def"))))))]))
+                                                                            "cannot be used outside
+                                                                            of def"))))))]))
 
 
-;; =================================================================================================== 
 
-;; Run
-(Klass bike (field name) (field no) (method (get-no x) (displayln (+ x self.no))) (method (get-name x) (displayln self.name)))
-(define-obj-bike first ("hayabusa" 10))
-first.name
-(first.get-no 2)
-(first.get-name 3)
+; ---------------------------------------------------------------------------------------------------
+
+; Tests
+(define tests
+  (test-suite
+    "All tests for Klass"
+    ; test-case for a sample class called bike.
+    (test-begin
+      "for sample class bike"
+      (Klass bike 
+             (field name)
+             (field no)
+             (method (get-no x y)
+                     (displayln "computing")
+                     (+ (+ x y) self.no))
+             (method (get-name x)
+                     self.name))
+
+      (define-obj-bike first ("hayabusa" 10))
+      (check-equal? first.name "hayabusa")
+      (check-equal? (first.get-no 2 3) 15)
+      (check-equal? (first.get-name 3) "hayabusa"))
+
+    ; tests for all compile time errors.
+    (check-exn #rx"duplicate identifier found" (convert-compile-time-error (Klass bike
+                                                                                  (field name)
+                                                                                  (field name))))))
+
+
+
+
+
+(run-tests tests)             
 

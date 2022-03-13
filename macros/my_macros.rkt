@@ -9,6 +9,8 @@
 (require macro-debugger/expand)
 (require macro-debugger/stepper-text)
 (require (for-syntax syntax/parse))
+(require (for-syntax "distinct-ids-sc.rkt"))
+(require (for-syntax "optionally-postfixed-sc.rkt"))
 ;; creating a struct macro.
 ;; (struct name (a b ...)) -> (define a macro with 2 cases)
 ;; first case: (name a b ...) -> (list a b ...)
@@ -245,4 +247,14 @@ akk
 
 ;(define-hello-post-protected v [n ", hello"] n)
 
+(define-syntax (define-hello-post-v3 stx)
+  (syntax-parse stx
+    [(_ (~optional ((~literal post) (~var s str))). xs)
+     #:declare xs (optionally-postfixed (if (attribute s) #'s #'""))
+     #:with (x ...) #'xs.ids*
+     #:with (p ...) #'xs.post*
+     #'(begin (define x (string-append "world" p)) ...)]))
 
+
+(define-hello-post-v3 (post "diff") z [v ", hello"] n)
+(list z v n)
