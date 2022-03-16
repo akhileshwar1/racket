@@ -141,9 +141,9 @@
       (check-equal? (first.get-name 3) "hayabusa"))
 
     ; tests for all compile time errors.
-    (check-exn #rx"duplicate identifier found" (convert-compile-time-error (Klass bike
+    (check-exn #rx"duplicate identifier found" (lambda () (convert-compile-time-error (Klass bike
                                                                                   (field name)
-                                                                                  (field name))))))
+                                                                                  (field name)))))))
 
 
 
