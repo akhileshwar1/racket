@@ -34,4 +34,3 @@
               (integer->char int))))]))
 
 
-(encode 65 66 75)
