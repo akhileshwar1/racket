@@ -78,16 +78,10 @@
                            #`(define #,(cons #'obj.func_name #'obj.arg)
                                (syntax-parameterize
                                  (#,@(for/list ([value (syntax->list #'(a ...))])
-                                       (with-syntax  ([obj.val (format-id #'obj
-                                                                          "~a.~a"
-                                                                          #'obj
-                                                                          value)]
-                                                      [r_val (format-id #'obj
-                                                                        "~a.~a"
-                                                                        #'self 
-                                                                        value)])
-                                         #'[r_val (make-rename-transformer
-                                                    #'obj.val)])))
+                                       (with-syntax 
+                                         ([obj.val (format-id #'obj "~a.~a" #'obj value)]
+                                          [r_val (format-id #'obj "~a.~a" #'self value)])
+                                         #'[r_val (make-rename-transformer #'obj.val)])))
                                  #,@(syntax->list #'obj.body))))))]))))]))
 
 
