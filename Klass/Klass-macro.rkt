@@ -51,11 +51,11 @@
            ; internal data repr of the class.
            (struct name (a ...))
 
-           ; Calling a macro that initializes all the self syntax paramters for the corresponding
-           ; fields.
+           ; Calling a macro that initializes all the self syntax paramters for the 
+           ; corresponding fields.
            (Klass-skeleton a ...)
 
-           ; creating an object of a specific class by expanding into defining a struct and definin
+           ; creating an object of a specific class by expanding into defining a struct and
            ; macros for dot operations on fields.
            (define-syntax (obj-def stx)
              (syntax-parse stx 
