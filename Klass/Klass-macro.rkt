@@ -76,18 +76,19 @@
                                        [obj.arg  args]
                                        [obj.body bodys])
                            #`(define #,(cons #'obj.func_name #'obj.arg)
-                               (syntax-parameterize (#,@(for/list ([value (syntax->list #'(a ...))])
-                                                          (with-syntax  ([obj.val (format-id #'obj
-                                                                                             "~a.~a"
-                                                                                             #'obj
-                                                                                             value)]
-                                                                         [r_val (format-id #'obj
-                                                                                           "~a.~a"
-                                                                                           #'self 
-                                                                                           value)])
-                                                            #'[r_val (make-rename-transformer
-                                                                       #'obj.val)])))
-                                                    #,@(syntax->list #'obj.body))))))]))))]))
+                               (syntax-parameterize
+                                 (#,@(for/list ([value (syntax->list #'(a ...))])
+                                       (with-syntax  ([obj.val (format-id #'obj
+                                                                          "~a.~a"
+                                                                          #'obj
+                                                                          value)]
+                                                      [r_val (format-id #'obj
+                                                                        "~a.~a"
+                                                                        #'self 
+                                                                        value)])
+                                         #'[r_val (make-rename-transformer
+                                                    #'obj.val)])))
+                                 #,@(syntax->list #'obj.body))))))]))))]))
 
 
 ; Helper macro to create obj.field macro.
@@ -141,9 +142,11 @@
       (check-equal? (first.get-name 3) "hayabusa"))
 
     ; tests for all compile time errors.
-    (check-exn #rx"duplicate identifier found" (lambda () (convert-compile-time-error (Klass bike
-                                                                                  (field name)
-                                                                                  (field name)))))))
+    (check-exn #rx"duplicate identifier found" (lambda () 
+                                                 (convert-compile-time-error 
+                                                   (Klass bike
+                                                          (field name)
+                                                          (field name)))))))
 
 
 
